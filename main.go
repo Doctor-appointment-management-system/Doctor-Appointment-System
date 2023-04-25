@@ -23,22 +23,43 @@ type Patients struct {
 	Patient_history         string
 }
 
-type Database interface {
+type Doctor struct {
+	ID                               int
+	Name                             string
+	Gender                           string
+	Address                          string
+	City                             string
+	Phone                            string
+	Specialisation                   string
+	Opening_time                     string
+	Closing_time                     string
+	Availability_time                string
+	Availability                     string
+	Available_for_home_visit         string
+	Available_for_online_consultancy string
+	Fees                             int
+}
+
+type dbase interface {
 	AddPatient(p *Patients) error
 	GetPatient(p *Patients) error
 	UpdatePatient(p *Patients) error
 	DeletePatient(p *Patients) error
+	AddDoctor(p *Doctor) error
+	GetDoctor(p *Doctor) error
+	UpdateDoctort(p *Doctor) error
+	DeleteDoctor(p *Doctor) error
 }
 
 type HTTPHandler struct {
-	db Database
+	db dbase
 }
 
-type MySQLDatabase struct {
+type MySQLdbase struct {
 	db *sql.DB
 }
 
-func NewMySQLDatabase(connectionString string) (*MySQLDatabase, error) {
+func NewMySQLdbase(connectionString string) (*MySQLdbase, error) {
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return nil, err
@@ -46,12 +67,32 @@ func NewMySQLDatabase(connectionString string) (*MySQLDatabase, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLDatabase{db}, nil
+	return &MySQLdbase{db}, nil
 }
 
-// Add Patient to database-  CREATE OPERATION
+// Add Doctor to dbase-  CREATE OPERATION
+func (m *MySQLdbase) AddDoctor(d *Doctor) error {
+	sql_query := fmt.Sprintf(`INSERT INTO Doctor (Name,Gender,Address,City,Phone,Specialisation,Opening_time,Closing_time,Availability_time,Availability,Available_for_home_visit,Available_for_online_consultancy,Fees) VALUES ( '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s',%d)`, d.Name, d.Gender, d.Address, d.City, d.Phone, d.Specialisation, d.Opening_time, d.Closing_time, d.Availability_time, d.Availability, d.Available_for_home_visit, d.Available_for_online_consultancy, d.Fees)
+	_, err := m.db.Exec(sql_query)
+	return err
+}
 
-func (m *MySQLDatabase) AddPatient(p *Patients) error {
+func (h *HTTPHandler) AddDoctor(c *gin.Context) {
+	var doctor Doctor
+	if err := c.BindJSON(&doctor); err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	if err := h.db.AddDoctor(&doctor); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, doctor)
+}
+
+// Add Patient to dbase-  CREATE OPERATION
+
+func (m *MySQLdbase) AddPatient(p *Patients) error {
 	sql_query := fmt.Sprintf(`INSERT INTO patient(Name,Age,Gender,Address,City,Phone,Disease,Selected_Specialisation,Patient_history) VALUES('%s',%d,'%s','%s','%s','%s','%s','%s','%s')`, p.Name, p.Age, p.Gender, p.Address, p.City, p.Phone, p.Disease, p.Selected_specialisation, p.Patient_history)
 	_, err := m.db.Exec(sql_query)
 	return err
@@ -70,9 +111,31 @@ func (h *HTTPHandler) AddPatient(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, patient)
 }
 
-// Get the Patient details from the database - READ OPERATION
+func (m *MySQLdbase) GetDoctor(p *Doctor) error {
+	sql_query := fmt.Sprintf(`SELECT * FROM Doctor WHERE Phone='%s'`, p.Phone)
+	_, err := m.db.Exec(sql_query)
+	return err
+}
 
-func (m *MySQLDatabase) GetPatient(p *Patients) error {
+func (h *HTTPHandler) GetDoctor(c *gin.Context) {
+	var doctor Doctor
+	err := c.BindJSON(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.GetDoctor(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, doctor)
+}
+
+// Get the Patient details from the dbase - READ OPERATION
+
+func (m *MySQLdbase) GetPatient(p *Patients) error {
 	sql_query := fmt.Sprintf(`SELECT * FROM Patient WHERE Phone='%s'`, p.Phone)
 	_, err := m.db.Exec(sql_query)
 	return err
@@ -94,9 +157,32 @@ func (h *HTTPHandler) GetPatient(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, patient)
 }
 
-// Update the patient details in the database - UPDATE OPERATION
+func (m *MySQLdbase) UpdateDoctort(d *Doctor) error {
+	update_query := fmt.Sprintf("UPDATE Doctor SET Address='%s',City='%s',Phone='%s', Opening_time ='%s',Closing_time='%s',Fees %d, WHERE Id=%d", d.Address, d.City, d.Phone, d.Opening_time, d.Closing_time, d.Fees, d.ID)
+	fmt.Println(update_query)
+	_, err := m.db.Exec(update_query)
+	return err
+}
 
-func (m *MySQLDatabase) UpdatePatient(p *Patients) error {
+func (h *HTTPHandler) UpdateDoctort(c *gin.Context) {
+	var doctor Doctor
+	err := c.BindJSON(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	err = h.db.UpdateDoctort(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, doctor)
+}
+
+// Update the patient details in the dbase - UPDATE OPERATION
+
+func (m *MySQLdbase) UpdatePatient(p *Patients) error {
 	update_query := fmt.Sprintf("UPDATE Patients SET Name='%s',Age=%d,Gender='%s',Address='%s',City='%s',Phone='%s', Diseases='%s',Selected_specialisation='%s',Patient_history='%s', WHERE Id=%d", p.Name, p.Age, p.Gender, p.Address, p.City, p.Phone, p.Disease, p.Selected_specialisation, p.Patient_history, p.ID)
 	fmt.Println(update_query)
 	_, err := m.db.Exec(update_query)
@@ -119,9 +205,31 @@ func (h *HTTPHandler) UpdatePatient(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, patient)
 }
 
-// Delete the patient from Database - DELETE OPERATION
+func (m *MySQLdbase) DeleteDoctor(d *Doctor) error {
+	sql_query := fmt.Sprintf("DELETE FROM Doctor WHERE ID= %d", d.ID)
+	_, err := m.db.Exec(sql_query)
+	return err
+}
 
-func (m *MySQLDatabase) DeletePatient(p *Patients) error {
+func (h *HTTPHandler) DeleteDoctor(c *gin.Context) {
+	var doctor Doctor
+	err := c.BindJSON(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.DeleteDoctor(&doctor)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, doctor)
+}
+
+// Delete the patient from dbase - DELETE OPERATION
+
+func (m *MySQLdbase) DeletePatient(p *Patients) error {
 	sql_query := fmt.Sprintf("DELETE FROM Patient WHERE Phone='%s'", p.Phone)
 	_, err := m.db.Exec(sql_query)
 	return err
@@ -143,7 +251,7 @@ func (h *HTTPHandler) DeletePatient(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, patient)
 }
 func main() {
-	db, err := NewMySQLDatabase("root:india@123@tcp(localhost:3306)/das_new")
+	db, err := NewMySQLdbase("root:india@123@tcp(localhost:3306)/das_new")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,4 +264,9 @@ func main() {
 	router.GET("patient/get_patient", handler.GetPatient)
 	router.PUT("patient/update_patient", handler.UpdatePatient)
 	router.DELETE("patient/delete_patient", handler.DeletePatient)
+	router.POST("doctor/add_doctor", handler.AddDoctor)
+	router.GET("doctor/get_doctor", handler.GetDoctor)
+	router.PUT("doctor/update_doctor", handler.UpdateDoctort)
+	router.DELETE("doctor/delete_doctor", handler.DeleteDoctor)
+
 }
