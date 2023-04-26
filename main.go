@@ -183,7 +183,7 @@ func (h *HTTPHandler) UpdateDoctort(c *gin.Context) {
 // Update the patient details in the dbase - UPDATE OPERATION
 
 func (m *MySQLdbase) UpdatePatient(p *Patients) error {
-	update_query := fmt.Sprintf("UPDATE Patients SET Name='%s',Age=%d,Gender='%s',Address='%s',City='%s',Phone='%s', Diseases='%s',Selected_specialisation='%s',Patient_history='%s', WHERE Id=%d", p.Name, p.Age, p.Gender, p.Address, p.City, p.Phone, p.Disease, p.Selected_specialisation, p.Patient_history, p.ID)
+	update_query := fmt.Sprintf("UPDATE Patient SET Name='%s',Age=%d,Gender='%s',Address='%s',City='%s',Phone='%s', Diseases='%s',Selected_specialisation='%s',Patient_history='%s', WHERE Id=%d", p.Name, p.Age, p.Gender, p.Address, p.City, p.Phone, p.Disease, p.Selected_specialisation, p.Patient_history, p.ID)
 	fmt.Println(update_query)
 	_, err := m.db.Exec(update_query)
 	return err
@@ -279,19 +279,29 @@ func db_connection() (*sql.DB, error) {
 	return db, nil
 }
 
-func sql_tabel_creation() {
+func sql_Doctor_tabel_creation() {
 	db, err := db_connection()
 	Err(err)
 	// sql table creation
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS Patient(ID INT NOT NULL AUTO_INCREMENT, Name VARCHAR(30),Age INT,Gender VARCHAR(10),Address VARCHAR(50), City VARCHAR(20),Phone VARCHAR(15),Disease VARCHAR(25),Selected_Specialisation VARCHAR(20),Patient_history VARCHAR(250), PRIMARY KEY (ID) );")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS Doctor(ID INT NOT NULL AUTO_INCREMENT, Name VARCHAR(30),Gender VARCHAR(10),Address VARCHAR(50), City VARCHAR(20),Phone VARCHAR(15),Specialisation VARCHAR(20),Opening_time VARCHAR(10),Closing_time VARCHAR(10),Availability_time VARCHAR(30),Availability VARCHAR(10),Available_for_home_visit VARCHAR(4),Available_for_online_consultancy VARCHAR(4),Fees INT ,PRIMARY KEY (ID) );")
+	Err(err)
+	fmt.Println("Docter Table Created")
+}
 
+func sql_Patient_tabel_creation() {
+	db, err := db_connection()
+	Err(err)
+	// sql table creation
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS PATIENT(ID INT,Name VARCHAR(20),Gender VARCHAR(8),Address VARCHAR(255),City VARCHAR(20),State VARCHAR(20),Mobile_no VARCHAR(15))")
 	Err(err)
 }
 
 func main() {
 	dbCreation()
-	sql_tabel_creation()
+	sql_Doctor_tabel_creation()
+	sql_Patient_tabel_creation()
 
 	db, err := NewMySQLdbase("root:india@123@tcp(localhost:3306)/das_new")
 	if err != nil {
