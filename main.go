@@ -250,7 +250,49 @@ func (h *HTTPHandler) DeletePatient(c *gin.Context) {
 	}
 	c.IndentedJSON(http.StatusCreated, patient)
 }
+
+func Err(err error) {
+	if err != nil {
+		log.Panic(err.Error())
+	}
+}
+
+func dbCreation() {
+
+	//connecting to mysql
+
+	db, err := sql.Open("mysql", "root:india@123@tcp(localhost:3306)/")
+	Err(err)
+	defer db.Close()
+
+	// database creation
+
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS das_new")
+	Err(err)
+}
+func db_connection() (*sql.DB, error) {
+	db, err := sql.Open("mysql", "root:india@123@tcp(localhost:3306)/das_new")
+
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func sql_tabel_creation() {
+	db, err := db_connection()
+	Err(err)
+	// sql table creation
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS Patient(ID INT NOT NULL AUTO_INCREMENT, Name VARCHAR(30),Age INT,Gender VARCHAR(10),Address VARCHAR(50), City VARCHAR(20),Phone VARCHAR(15),Disease VARCHAR(25),Selected_Specialisation VARCHAR(20),Patient_history VARCHAR(250), PRIMARY KEY (ID) );")
+
+	Err(err)
+}
+
 func main() {
+	dbCreation()
+	sql_tabel_creation()
+
 	db, err := NewMySQLdbase("root:india@123@tcp(localhost:3306)/das_new")
 	if err != nil {
 		log.Fatal(err)
@@ -268,5 +310,5 @@ func main() {
 	router.GET("doctor/get_doctor", handler.GetDoctor)
 	router.PUT("doctor/update_doctor", handler.UpdateDoctort)
 	router.DELETE("doctor/delete_doctor", handler.DeleteDoctor)
-
+	router.Run(":8080")
 }
