@@ -42,7 +42,7 @@ type Doctor struct {
 
 type dbase interface {
 	AddPatient(p *Patients) error
-	GetPatient(p *Patients) error
+	GetPatient(p *Patients) (*Patients, error)
 	UpdatePatient(p *Patients) error
 	DeletePatient(p *Patients) error
 	AddDoctor(p *Doctor) error
@@ -135,10 +135,21 @@ func (h *HTTPHandler) GetDoctor(c *gin.Context) {
 
 // Get the Patient details from the dbase - READ OPERATION
 
-func (m *MySQLdbase) GetPatient(p *Patients) error {
+func (m *MySQLdbase) GetPatient(p *Patients) (*Patients, error) {
 	sql_query := fmt.Sprintf(`SELECT * FROM Patient WHERE Phone='%s'`, p.Phone)
-	_, err := m.db.Exec(sql_query)
-	return err
+	detail, err := m.db.Query(sql_query)
+	if err != nil {
+		return nil, err
+	}
+	defer detail.Close()
+	var patient Patients
+	if detail.Next() {
+		err = detail.Scan(&patient.ID, &patient.Name, &patient.Age, &patient.Gender, &patient.Address, &patient.City, &patient.Phone, &patient.Disease, &patient.Selected_specialisation, &patient.Patient_history)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &patient, nil
 }
 
 func (h *HTTPHandler) GetPatient(c *gin.Context) {
@@ -149,12 +160,13 @@ func (h *HTTPHandler) GetPatient(c *gin.Context) {
 		return
 	}
 
-	err = h.db.AddPatient(&patient)
+	result, err := h.db.GetPatient(&patient)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.IndentedJSON(http.StatusCreated, patient)
+
+	c.JSON(http.StatusOK, gin.H{"patient": result})
 }
 
 func (m *MySQLdbase) UpdateDoctort(d *Doctor) error {
@@ -202,7 +214,7 @@ func (h *HTTPHandler) UpdatePatient(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.IndentedJSON(http.StatusCreated, patient)
+	c.JSON(http.StatusOK, gin.H{"Message": "Patient is removed from database successfully"})
 }
 
 func (m *MySQLdbase) DeleteDoctor(d *Doctor) error {
